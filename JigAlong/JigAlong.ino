@@ -3,58 +3,53 @@
 // copyright SJ Hindmarch 2015
 // Distributed under the GNU General Public License
 
-const int LED_PIN[]={3,4,5,6,7,8,9,10};
-const int SW_PIN[]={2,12};
-const int NUM_LEDS=8;
-const int LIGHT_TIME=100;
-const int FLASHES=2;
-const int LEFT=-1;
-const int RIGHT=1;
+const int SHFT_CLK=10;
+const int LTCH_CLK=9;
+const int DATA_IN=8;
+const int BITS=8;
 
-int all_high[]={HIGH,HIGH,HIGH,HIGH,HIGH,HIGH,HIGH,HIGH};
-int all_low[]={LOW,LOW,LOW,LOW,LOW,LOW,LOW,LOW};
-int zero_high[]={HIGH,LOW,LOW,LOW,LOW,LOW,LOW,LOW};
-int* current_state;
-int current_pin=0;
-int direction=0;
+byte current_state;
 
-void setup() {
-  for(int i=0;i<NUM_LEDS;i++){
-    pinMode(LED_PIN[i],OUTPUT);  
+void setup(){
+     pinMode(SHFT_CLK,OUTPUT);
+     pinMode(LTCH_CLK,OUTPUT);
+     pinMode(DATA_IN,OUTPUT);
+     current_state=17;
+}
+
+void loop(){
+     set_leds(current_state);
+     delay(200);
+     current_state=go_right(current_state);
+     //if(current_state==0)current_state=128;
+}
+
+byte go_left(byte value){
+  byte new_value=value >> 1;
+  if(bitRead(value,0)==1)
+    bitSet(new_value,7);
+  return new_value;
+}
+
+byte go_right(byte value){
+  byte new_value=value << 1;
+  if(bitRead(value,7)==1)
+    bitSet(new_value,0);
+  return new_value;
+}
+
+void set_leds(int value){
+  byte op=1;
+  for(int i=0;i<BITS;i++){
+    if((value & op)==op){
+	    digitalWrite(DATA_IN,HIGH);
+    }else{
+	    digitalWrite(DATA_IN,LOW);
+    }
+	  digitalWrite(SHFT_CLK,LOW);
+	  digitalWrite(SHFT_CLK,HIGH);
+    op = op << 1;
   }
-  pinMode(SW_PIN[0],INPUT);
-  pinMode(SW_PIN[1],INPUT);
-  for(int i=0;i<FLASHES;i++)
-    all_flash();
-  current_state=zero_high;
+  digitalWrite(LTCH_CLK,LOW);
+  digitalWrite(LTCH_CLK,HIGH);
 }
-
-void loop() {
-  if(digitalRead(SW_PIN[0]))direction=RIGHT;
-  if(digitalRead(SW_PIN[1]))direction=LEFT;
-  set_leds(current_state,LED_PIN);
-  delay(LIGHT_TIME);
-  shift_state();
-}
-
-void all_flash(){
-  set_leds(all_high,LED_PIN);
-  delay(250);
-  set_leds(all_low,LED_PIN);
-  delay(250);    
-}
-
-void shift_state(){
-  current_state[current_pin]=LOW;
-  current_pin+=direction;
-  if(current_pin>=NUM_LEDS)current_pin=0;
-  if(current_pin<0)current_pin=NUM_LEDS-1;
-  current_state[current_pin]=HIGH;
-}
-
-void set_leds(int state[],const int pin[]){
-  for(int i=0;i<NUM_LEDS;i++){
-    digitalWrite(pin[i],state[i]);
-  }
-}
-
